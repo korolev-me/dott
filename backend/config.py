@@ -1,5 +1,7 @@
 import os
 
+os.environ["MYSQL_USER"] = "root"
+os.environ["MYSQL_PASSWORD"] = "dott_password"
 
 class Config( object ):
 	ROOT_FOLDER = os.getcwd()

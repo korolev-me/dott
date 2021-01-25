@@ -9,13 +9,12 @@ class DataUpload(Data):
 	"""
 	Store data and makes uploading process.
 	"""
-	def __init__(self, userpath):
+	def __init__(self):
 		"""
 		Initialize object of class, save arguments to parameters, initialize parameters.
 
 		:param userpath: path to user folder with source data.
 		"""
-		self.userpath = userpath
 
 	def readDataFrame(self, file):
 		"""
@@ -26,7 +25,6 @@ class DataUpload(Data):
 		"""
 
 		read_correct = False
-
 		data_str = str(file.stream.read(), 'utf-8')
 		for sep in [',', ';', '\t']:
 			try:

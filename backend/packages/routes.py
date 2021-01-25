@@ -12,59 +12,81 @@ from packages.Data.data import Data
 from packages.Data.data_upload import DataUpload
 from packages.Data.data_prep import DataPrep
 
+import time
+
 @app.route( '/upload/deployments', methods=['POST', 'OPTIONS'] )
 def upload_deployments():
-	userpath = Config.UPLOAD_FOLDER
 	file = request.files['file']
 
+	print('upload_deployments')
 	# Preprocessing data
 	try:
-		data_upload = DataUpload( userpath)
-		data_upload.readDataFrame( file)
+		data_upload = DataUpload()
+		data_upload.readDataFrame(file)
 	except Exception as error:
 		response = jsonify( {"status": "Error"} )
 		return response
 
 	# Saving data
-	data_upload.save( data_upload.data_df, userpath, 'deployments.csv')
+	start_time = time.time()
+	data_upload.data_df = data_upload.data_df.where(pd.notnull(data_upload.data_df), None)
+	data_l = data_upload.data_df.values.tolist()
+	cur = db_mysql.connection.cursor()
+	sql = "INSERT IGNORE INTO deployments VALUES (%s, %s, %s, %s)"
+	cur.executemany(sql, data_l)
+	db_mysql.connection.commit()
+	print("--- %s seconds ---" % (time.time() - start_time))
 
 	response = jsonify({"status": "Files uploaded"})
 	return response
 
 @app.route( '/upload/pickups', methods=['POST', 'OPTIONS'] )
 def upload_pickups():
-	userpath = Config.UPLOAD_FOLDER
 	file = request.files['file']
 
+	print('upload_pickups')
 	# Preprocessing data
 	try:
-		data_upload = DataUpload( userpath)
-		data_upload.readDataFrame( file)
+		data_upload = DataUpload()
+		data_upload.readDataFrame(file)
 	except Exception as error:
 		response = jsonify( {"status": "Error"} )
 		return response
 
 	# Saving data
-	data_upload.save( data_upload.data_df, userpath, 'pickups.csv')
+	start_time = time.time()
+	data_upload.data_df = data_upload.data_df.where(pd.notnull(data_upload.data_df), None)
+	data_l = data_upload.data_df.values.tolist()
+	cur = db_mysql.connection.cursor()
+	sql = "INSERT IGNORE INTO pickups VALUES (%s, %s, %s, %s, %s)"
+	cur.executemany(sql, data_l)
+	db_mysql.connection.commit()
+	print("--- %s seconds ---" % (time.time() - start_time))
 
 	response = jsonify({"status": "Files uploaded"})
 	return response
 
 @app.route( '/upload/rides', methods=['POST', 'OPTIONS'] )
 def upload_rides():
-	userpath = Config.UPLOAD_FOLDER
 	file = request.files['file']
 
 	# Preprocessing data
 	try:
-		data_upload = DataUpload( userpath)
-		data_upload.readDataFrame( file)
+		data_upload = DataUpload()
+		data_upload.readDataFrame(file)
 	except Exception as error:
 		response = jsonify( {"status": "Error"} )
 		return response
 
 	# Saving data
-	data_upload.save( data_upload.data_df, userpath, 'rides.csv')
+	start_time = time.time()
+	data_upload.data_df = data_upload.data_df.where(pd.notnull(data_upload.data_df), None)
+	data_l = data_upload.data_df.values.tolist()
+	cur = db_mysql.connection.cursor()
+	sql = "INSERT IGNORE INTO rides VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"
+	cur.executemany(sql, data_l)
+	db_mysql.connection.commit()
+	print("--- %s seconds ---" % (time.time() - start_time))
 
 	response = jsonify({"status": "Files uploaded"})
 	return response
@@ -78,7 +100,40 @@ def vehicle_performance(id):
 	else:
 		print('this is vehicle_id')
 
-	response = jsonify({"status": "OK"})
+	vehicle_id = id
+
+	# request = """SELECT * FROM rides WHERE (vehicle_id = %s)"""
+
+	request = """
+	SELECT 
+	  r.ride_id, 
+	  r.vehicle_id, 
+	  r.time_ride_end,
+	  r.gross_amount,
+	  r.time_ride_end - r.time_ride_start as time_to_ride,
+	6371 * acos( cos( radians(r.start_lat) ) 
+      * cos( radians(r.end_lat) ) 
+      * cos( radians(r.end_lng) - radians(r.start_lng)) + sin(radians(r.start_lat))
+      * sin( radians(r.end_lat) )) as travel_distance,
+ 	  d1.task_id as d1_task_id,
+	  d1.time_task_resolved as d1_time_task_resolved
+	FROM rides r
+	JOIN deployments d1 ON ((r.vehicle_id = d1.vehicle_id) AND (r.time_ride_end > d1.time_task_resolved))
+	LEFT OUTER JOIN deployments d2 ON (
+	  r.vehicle_id = d2.vehicle_id 
+	  AND (d1.time_task_resolved < d2.time_task_resolved)
+	  AND (r.time_ride_end > d2.time_task_resolved))
+	where ((r.vehicle_id = %s) and(d2.task_id IS NULL))
+	order by d1.time_task_resolved, r.gross_amount asc
+	limit 5;
+	"""
+
+	cur = db_mysql.connection.cursor()
+	cur.execute(request, [vehicle_id])
+	db_mysql.connection.commit()
+	resp_sql = cur.fetchall()
+
+	response = jsonify({"resp_sql": resp_sql})
 	return response
 
 @app.route( "/" )
