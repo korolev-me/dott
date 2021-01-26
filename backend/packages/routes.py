@@ -114,27 +114,18 @@ def vehicle_performance(id):
 	6371 * acos( cos( radians(r.start_lat) ) 
       * cos( radians(r.end_lat) ) 
       * cos( radians(r.end_lng) - radians(r.start_lng)) + sin(radians(r.start_lat))
-      * sin( radians(r.end_lat) )) as travel_distance,
- 	  d1.task_id as d1_task_id,
-	  d1.time_task_resolved as d1_time_task_resolved
+      * sin( radians(r.end_lat) )) as travel_distance
 	FROM rides r
-	JOIN deployments d1 ON ((r.vehicle_id = d1.vehicle_id) AND (r.time_ride_end > d1.time_task_resolved))
-	LEFT OUTER JOIN deployments d2 ON (
-	  r.vehicle_id = d2.vehicle_id 
-	  AND (d1.time_task_resolved < d2.time_task_resolved)
-	  AND (r.time_ride_end > d2.time_task_resolved))
-	where ((r.vehicle_id = %s) and(d2.task_id IS NULL))
-	order by d1.time_task_resolved, r.gross_amount asc
+	where (r.ride_id = 'yqe0ImYkRmrcmdYzfLf9')
 	limit 5;
 	"""
 
-	# cur = db_mysql.connection.cursor()
-	# cur.execute(request, [vehicle_id])
-	# db_mysql.connection.commit()
-	# resp_sql = cur.fetchall()
-	#
-	# response = jsonify({"resp_sql": resp_sql})
-	response = jsonify({"resp_sql": 123})
+	cur = db_mysql.connection.cursor()
+	cur.execute(request)
+	db_mysql.connection.commit()
+	resp_sql = cur.fetchall()
+
+	response = jsonify({"resp_sql": resp_sql})
 	return response
 
 @app.route( "/" )
