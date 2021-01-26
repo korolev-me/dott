@@ -104,8 +104,7 @@ def vehicle_performance(id):
 
 	request = """
 	SELECT 
-	  r.ride_id, 
-
+	  r.ride_id
 	FROM rides r
 	where (r.vehicle_id = %s)
 	order by r.gross_amount asc
