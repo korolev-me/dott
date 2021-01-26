@@ -105,14 +105,7 @@ def vehicle_performance(id):
 	request = """
 	SELECT 
 	  r.ride_id, 
-	  r.vehicle_id, 
-	  r.time_ride_end,
-	  r.gross_amount,
-	  r.time_ride_end - r.time_ride_start as time_to_ride,
-	6371 * acos( cos( radians(r.start_lat) ) 
-      * cos( radians(r.end_lat) ) 
-      * cos( radians(r.end_lng) - radians(r.start_lng)) + sin(radians(r.start_lat))
-      * sin( radians(r.end_lat) )) as travel_distance
+
 	FROM rides r
 	where (r.vehicle_id = %s)
 	order by r.gross_amount asc
