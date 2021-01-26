@@ -116,12 +116,12 @@ def vehicle_performance(id):
       * cos( radians(r.end_lng) - radians(r.start_lng)) + sin(radians(r.start_lat))
       * sin( radians(r.end_lat) )) as travel_distance
 	FROM rides r
-	where (r.ride_id = 'yqe0ImYkRmrcmdYzfLf9')
+	where (r.vehicle_id = %s)
 	limit 5;
 	"""
 
 	cur = db_mysql.connection.cursor()
-	cur.execute(request)
+	cur.execute(request, [vehicle_id])
 	db_mysql.connection.commit()
 	resp_sql = cur.fetchall()
 
