@@ -102,8 +102,6 @@ def vehicle_performance(id):
 
 	vehicle_id = id
 
-	# request = """SELECT * FROM rides WHERE (vehicle_id = %s)"""
-
 	request = """
 	SELECT 
 	  r.ride_id, 
@@ -114,17 +112,10 @@ def vehicle_performance(id):
 	6371 * acos( cos( radians(r.start_lat) ) 
       * cos( radians(r.end_lat) ) 
       * cos( radians(r.end_lng) - radians(r.start_lng)) + sin(radians(r.start_lat))
-      * sin( radians(r.end_lat) )) as travel_distance,
- 	  d1.task_id as d1_task_id,
-	  d1.time_task_resolved as d1_time_task_resolved
+      * sin( radians(r.end_lat) )) as travel_distance
 	FROM rides r
-	JOIN deployments d1 ON ((r.vehicle_id = d1.vehicle_id) AND (r.time_ride_end > d1.time_task_resolved))
-	LEFT OUTER JOIN deployments d2 ON (
-	  r.vehicle_id = d2.vehicle_id 
-	  AND (d1.time_task_resolved < d2.time_task_resolved)
-	  AND (r.time_ride_end > d2.time_task_resolved))
-	where ((r.vehicle_id = %s) and(d2.task_id IS NULL))
-	order by d1.time_task_resolved, r.gross_amount asc
+	where (r.vehicle_id = %s)
+	order by r.gross_amount asc
 	limit 5;
 	"""
 
