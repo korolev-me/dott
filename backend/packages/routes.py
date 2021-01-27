@@ -102,37 +102,52 @@ def vehicle_performance(id):
 
 	vehicle_id = id
 
-	# request = """SELECT * FROM rides WHERE (vehicle_id = %s)"""
-
-	request = """
+	request_deployment = """
 	SELECT 
-	  r.ride_id, 
-	  r.vehicle_id, 
-	  r.time_ride_end,
-	  r.gross_amount,
-	  r.time_ride_end - r.time_ride_start as time_to_ride,
-	6371 * acos( cos( radians(r.start_lat) ) 
-      * cos( radians(r.end_lat) ) 
-      * cos( radians(r.end_lng) - radians(r.start_lng)) + sin(radians(r.start_lat))
-      * sin( radians(r.end_lat) )) as travel_distance,
- 	  d1.task_id as d1_task_id,
-	  d1.time_task_resolved as d1_time_task_resolved
-	FROM rides r
-	JOIN deployments d1 ON ((r.vehicle_id = d1.vehicle_id) AND (r.time_ride_end > d1.time_task_resolved))
-	LEFT OUTER JOIN deployments d2 ON (
-	  r.vehicle_id = d2.vehicle_id 
-	  AND (d1.time_task_resolved < d2.time_task_resolved)
-	  AND (r.time_ride_end > d2.time_task_resolved))
-	where ((r.vehicle_id = %s) and(d2.task_id IS NULL))
-	order by d1.time_task_resolved, r.gross_amount asc
-	limit 5;
+		'deployment' as type,
+		COUNT(ride_id) as ride_count,
+		IFNULL(AVG(gross_amount), 0) as gross_amount,
+		FLOOR(IFNULL(AVG(time_to_ride), 0)) as time_to_ride,
+		IFNULL(AVG(travel_distance), 0) as travel_distance
+	FROM cycles_params 
+	WHERE vehicle_id = %s 
+	GROUP BY time_deployment
+	ORDER BY time_deployment desc
+	;
+	"""
+
+	request_ride = """
+	SELECT 
+		'ride' as type,
+		1 as ride_count,
+		gross_amount,
+		time_to_ride,
+		travel_distance
+	FROM cycles_params cp
+	JOIN (
+		SELECT 
+			vehicle_id,
+			time_deployment
+		FROM cycles
+		WHERE vehicle_id = %s 
+		ORDER BY time_deployment desc
+		LIMIT 1) as lc
+	ON ((cp.vehicle_id = lc.vehicle_id) AND (cp.time_deployment = lc.time_deployment))
+	ORDER BY gross_amount desc
+	LIMIT 5
+	;
 	"""
 
 	cur = db_mysql.connection.cursor()
-	cur.execute(request, [vehicle_id])
+	cur.execute(request_deployment, [vehicle_id])
 	db_mysql.connection.commit()
-	resp_sql = cur.fetchall()
+	resp_deployment = cur.fetchall()
 
+	cur.execute(request_ride, [vehicle_id])
+	db_mysql.connection.commit()
+	resp_ride = cur.fetchall()
+
+	resp_sql = (resp_ride+resp_deployment)[:5]
 	response = jsonify({"resp_sql": resp_sql})
 	return response
 
